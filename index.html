@@ -230,6 +230,27 @@
         .activity-time { font-size: 1.05rem; color: #2d3436; font-weight: bold; }
         .activity-venue { font-size: 1.05rem; color: #2d3436; margin-top: 4px; font-weight: bold; }
         .activity-repeat-tag { font-size: 0.85rem; color: #2c3e50; font-weight: bold; display: inline-block; margin-top: 4px; background: rgba(255,255,255,0.5); padding: 1px 6px; border-radius: 4px; }
+        
+        /* 地圖導航按鈕樣式 */
+        .activity-map-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+            padding: 4px 8px;
+            background-color: #ffffff;
+            color: #d63031;
+            border: 1px solid #d63031;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .activity-map-link:hover {
+            background-color: #d63031;
+            color: #ffffff;
+        }
 
         .cat-green { background-color: var(--cat-green); }
         .cat-blue { background-color: var(--cat-blue); }
@@ -403,6 +424,12 @@
                 <input type="text" id="actVenue" placeholder="例如：自修室">
             </div>
 
+            <!-- 新增 Google 地圖欄位 -->
+            <div class="form-group">
+                <label>Google 地圖連結</label>
+                <input type="url" id="actMapLink" placeholder="請貼上 https://maps.app.goo.gl/... 或網址">
+            </div>
+
             <div class="form-group">
                 <label>標籤顏色</label>
                 <div class="color-options">
@@ -423,7 +450,6 @@
     </div>
 
     <script>
-        // 這是您全新部署成功、且權限完全開通的 API 網址
         const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbzv0Mxi8Qqy7lxYlTfKyhfNtO12FHfKfS6t9YfU-6KCHR87KcdBfRnvr-4DivRrAIxO/exec";
         const START_LIMIT_DATE = "2026-07-05"; 
         const END_LIMIT_DATE = "2026-09-01";   
@@ -459,6 +485,7 @@
         const actTime = document.getElementById('actTime');
         const actDuration = document.getElementById('actDuration');
         const actVenue = document.getElementById('actVenue');
+        const actMapLink = document.getElementById('actMapLink'); // 獲取地圖輸入 DOM
 
         actIsRepeat.addEventListener('change', (e) => {
             repeatEndGroup.style.display = e.target.checked ? 'flex' : 'none';
@@ -599,8 +626,18 @@
                                 <div class="activity-title">${act.title}</div>
                                 <div class="activity-time">⏰ ${act.time} (${act.duration}分)</div>
                                 ${act.venue ? `<div class="activity-venue">📍 ${act.venue}</div>` : ''}
+                                ${act.mapLink ? `<a href="${act.mapLink}" target="_blank" class="activity-map-link">🗺️ 點我導航</a>` : ''}
                                 ${act.isRepeat ? `<span class="activity-repeat-tag">🔄 每週重複</span>` : ''}
                             `;
+                            
+                            // 阻擋地圖按鈕的冒泡點擊事件，避免觀看時開啟地圖卻在編輯模式觸發彈出視窗
+                            const mapBtn = card.querySelector('.activity-map-link');
+                            if(mapBtn) {
+                                mapBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                });
+                            }
+
                             card.addEventListener('click', (e) => {
                                 e.stopPropagation(); 
                                 if (!isEditMode) return; 
@@ -659,6 +696,7 @@
             actTime.value = `${hour.toString().padStart(2, '0')}:00`;
             actDuration.value = 60;
             actVenue.value = '';
+            actMapLink.value = ''; // 清空地圖網址
             updateColorSelection('cat-green');
 
             modalOverlay.classList.add('active');
@@ -681,6 +719,7 @@
             actTime.value = act.time;
             actDuration.value = act.duration;
             actVenue.value = act.venue;
+            actMapLink.value = act.mapLink || ''; // 讀取現有地圖網址
             updateColorSelection(act.color);
 
             modalOverlay.classList.add('active');
@@ -701,6 +740,7 @@
             const time = actTime.value;
             const duration = parseInt(actDuration.value);
             const venue = actVenue.value.trim();
+            const mapLink = actMapLink.value.trim(); // 取得地圖網址
 
             if (!title || !dateStr || !time) {
                 alert('請完整填寫活動名稱、日期與時間！');
@@ -714,20 +754,20 @@
                     const choice = confirm("這是一個【重複發生】的活動：\n\n【確定】：修改往後所有週次的活動\n【取消】：僅修改選定日期的這單次活動");
                     
                     if (choice) {
-                        Object.assign(originalAct, { title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, color: selectedColor });
+                        Object.assign(originalAct, { title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, mapLink, color: selectedColor });
                     } else {
                         if(!originalAct.exceptions) originalAct.exceptions = [];
                         originalAct.exceptions.push(targetSelectedDateContext);
                         activities.push({
-                            id: Date.now().toString(), title, date: targetSelectedDateContext, isRepeat: false, time, duration, venue, color: selectedColor
+                            id: Date.now().toString(), title, date: targetSelectedDateContext, isRepeat: false, time, duration, venue, mapLink, color: selectedColor
                         });
                     }
                 } else {
-                    Object.assign(originalAct, { title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, color: selectedColor });
+                    Object.assign(originalAct, { title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, mapLink, color: selectedColor });
                 }
             } else {
                 activities.push({
-                    id: Date.now().toString(), title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, color: selectedColor, exceptions: []
+                    id: Date.now().toString(), title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, mapLink, color: selectedColor, exceptions: []
                 });
             }
 
