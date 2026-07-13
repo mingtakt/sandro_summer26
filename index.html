@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☀️ 宸章暑期樂2026 (雲端同步版) ☀️</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --container-bg: #ffffff;
+            --header-bg: #ffeaa7;
+            --time-bg: #dfe6e9;
+            --grid-border: #cbd5e1;
+            --text-main: #2d3436;
+            
+            /* 活動分類粉彩色系 */
+            --cat-green: #c2f0c2;
+            --cat-blue: #a3cef1;
+            --cat-yellow: #fff275;
+            --cat-orange: #ffb37e;
+            --cat-red: #ff9999;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'PingFang HK', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            color: #2d3436;
+            margin-bottom: 5px;
+        }
+
+        /* 頂部同步狀態條 */
+        .loading-status {
+            background: #ffeaa7;
+            color: #2d3436;
+            padding: 10px 24px;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: none;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        /* 模式切換工具列 */
+        .mode-toolbar {
+            display: flex;
+            background: #e2e8f0;
+            padding: 6px;
+            border-radius: 30px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .mode-btn.active {
+            background: #ffffff;
+            color: #2d3436;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+
+        /* 編輯模式啟動時的警告邊框提示 */
+        body.edit-mode-active {
+            border: 4px solid #ff7675;
+        }
+
+        /* 週別切換控制區 */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            background: var(--container-bg);
+            padding: 15px 30px;
+            border-radius: 40px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .controls button {
+            background-color: #0984e3;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .controls button:hover { background-color: #00cec9; }
+        .controls button:disabled { background-color: #b2bec3; cursor: not-allowed; }
+
+        #currentWeekLabel {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2d3436;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        /* 日程表主體網格 */
+        .timetable-container {
+            width: 100%;
+            max-width: 1300px;
+            background: var(--container-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 110px repeat(7, 1fr);
+        }
+
+        .grid-header, .time-cell, .slot-cell {
+            padding: 14px 6px;
+            text-align: center;
+            border-right: 1px solid var(--grid-border);
+            border-bottom: 1px solid var(--grid-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+        }
+
+        .grid-header {
+            font-weight: bold;
+            font-size: 1.5rem;
+            background-color: #eaedf2;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        .grid-header span {
+            font-size: 1rem;
+            color: #636e72;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .corner {
+            background-color: var(--header-bg);
+            font-size: 1.2rem;
+            z-index: 3;
+        }
+
+        .time-cell {
+            background-color: var(--time-bg);
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: sticky;
+            left: 0;
+            z-index: 1;
+        }
+
+        .slot-cell {
+            background-color: #ffffff;
+            position: relative;
+            justify-content: flex-start;
+            align-items: stretch;
+            padding: 6px;
+        }
+
+        body.edit-mode-active .slot-cell {
+            cursor: pointer;
+        }
+        body.edit-mode-active .slot-cell:hover {
+            background-color: #f1f2f6;
+            box-shadow: inset 0 0 0 3px #74b9ff;
+        }
+        body.edit-mode-active .activity-card {
+            cursor: pointer;
+        }
+
+        /* 活動卡片 */
+        .activity-card {
+            font-size: 1.2rem;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: left;
+            margin-bottom: 6px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            border-left: 6px solid rgba(0,0,0,0.25);
+            word-break: break-all;
+        }
+
+        .activity-title { font-weight: bold; margin-bottom: 4px; color: #000000; }
+        .activity-time { font-size: 1.05rem; color: #2d3436; font-weight: bold; }
+        .activity-venue { font-size: 1.05rem; color: #2d3436; margin-top: 4px; font-weight: bold; }
+        .activity-repeat-tag { font-size: 0.85rem; color: #2c3e50; font-weight: bold; display: inline-block; margin-top: 4px; background: rgba(255,255,255,0.5); padding: 1px 6px; border-radius: 4px; }
+        
+        /* 地圖導航按鈕樣式 */
+        .activity-map-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+            padding: 4px 8px;
+            background-color: #ffffff;
+            color: #d63031;
+            border: 1px solid #d63031;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .activity-map-link:hover {
+            background-color: #d63031;
+            color: #ffffff;
+        }
+
+        .cat-green { background-color: var(--cat-green); }
+        .cat-blue { background-color: var(--cat-blue); }
+        .cat-yellow { background-color: var(--cat-yellow); }
+        .cat-orange { background-color: var(--cat-orange); }
+        .cat-red { background-color: var(--cat-red); }
+
+        /* 彈出視窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal {
+            background: white; padding: 30px; border-radius: 20px;
+            width: 95%; max-width: 500px; box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            max-height: 90vh; overflow-y: auto;
+        }
+
+        .modal h3 { margin-bottom: 20px; text-align: center; font-size: 1.6rem; }
+
+        .form-group { margin-bottom: 18px; display: flex; flex-direction: column; }
+        .form-group label { font-size: 1.2rem; font-weight: bold; margin-bottom: 8px; }
+        .form-group input, .form-group select { padding: 12px; border: 2px solid #b2bec3; border-radius: 10px; font-size: 1.2rem; }
+        .inline-checkbox { flex-direction: row; align-items: center; gap: 10px; }
+        .inline-checkbox input { width: 22px; height: 22px; }
+        
+        .color-options { display: flex; gap: 15px; margin-top: 5px; }
+        .color-dot { width: 38px; height: 38px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+        .color-dot.selected { border-color: #2d3436; transform: scale(1.15); }
+
+        .modal-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 25px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 10px; font-size: 1.2rem; cursor: pointer; font-weight: bold; }
+
+        .btn-save { background-color: #2ecc71; color: white; }
+        .btn-delete { background-color: #ff7675; color: white; }
+        .btn-cancel { background-color: #dfe6e9; color: #2d3436; }
+
+        footer { margin-top: 30px; font-size: 1.1rem; color: #747d8c; text-align: center; font-weight: bold; }
+
+        /* 📱 RWD 手機版排列優化 */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            header h1 { font-size: 2.2rem; }
+            .controls { padding: 10px 15px; gap: 10px; }
+            .controls button { padding: 10px 16px; font-size: 1.1rem; }
+            #currentWeekLabel { font-size: 1.1rem; }
+
+            .timetable-container { grid-template-columns: 1fr; gap: 15px; background: transparent; box-shadow: none; overflow: visible; }
+            .corner { display: none; }
+            
+            .grid-header { 
+                position: relative; 
+                font-size: 1.6rem; 
+                padding: 12px; 
+                background-color: #2d3436 !important; 
+                color: white !important; 
+                border-radius: 12px 12px 0 0;
+                margin-top: 10px;
+                min-height: auto;
+            }
+            .grid-header span { color: #ffeaa7 !important; font-size: 1.2rem; margin-left: 8px; display: inline-block; }
+
+            .time-cell { display: none; } 
+            
+            .slot-cell { 
+                background-color: #ffffff; 
+                border: 1px solid var(--grid-border);
+                border-top: none;
+                min-height: auto; 
+                padding: 12px;
+                display: block; 
+            }
+            .slot-cell:not(:has(.activity-card)) { display: none; }
+            
+            .grid-header:not(+ .slot-cell:has(.activity-card))::after {
+                content: " 📋 今日無行程";
+                display: block;
+                font-size: 1.1rem;
+                color: #b2bec3;
+                padding: 15px;
+                background: white;
+                text-align: center;
+                border: 1px solid var(--grid-border);
+                border-top: none;
+                border-radius: 0 0 12px 12px;
+            }
+            
+            .activity-card { font-size: 1.2rem; padding: 14px; margin-bottom: 10px; }
+            .activity-time, .activity-venue { font-size: 1.05rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>☀️ 宸章暑期樂2026</h1>
+    </header>
+
+    <div class="mode-toolbar">
+        <button class="mode-btn active" id="viewModeBtn">👀 觀看模式</button>
+        <button class="mode-btn" id="editModeBtn">✏️ 編輯模式</button>
+    </div>
+
+    <div class="loading-status" id="loadingStatus">🔄 正在連線雲端資料庫...</div>
+
+    <div class="controls">
+        <button id="prevWeekBtn">◀ 上一週</button>
+        <span id="currentWeekLabel">同步中...</span>
+        <button id="nextWeekBtn">下一週 ▶</button>
+    </div>
+
+    <div class="timetable-container" id="timetable">
+        <div class="grid-header corner">時間</div>
+        <div class="grid-header" data-day="6">日 <span class="date-lbl"></span></div>
+        <div class="grid-header" data-day="0">一 <span class="date-lbl"></span></div>
+        <div class="grid-header" data-day="1">二 <span class="date-lbl"></span></div>
+        <div class="grid-header" data-day="2">三 <span class="date-lbl"></span></div>
+        <div class="grid-header" data-day="3">四 <span class="date-lbl"></span></div>
+        <div class="grid-header" data-day="4">五 <span class="date-lbl"></span></div>
+        <div class="grid-header" data-day="5">六 <span class="date-lbl"></span></div>
+    </div>
+
+    <footer>
+        <p>雲端即時連線 🌐 手機／平板／電腦自動適應</p>
+    </footer>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalHeaderTitle">編輯活動詳情</h3>
+            
+            <div class="form-group">
+                <label>活動名稱</label>
+                <input type="text" id="actTitle" placeholder="例如：英文補習 📝">
+            </div>
+
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="actDate" min="2026-07-05" max="2026-09-01">
+            </div>
+
+            <div class="form-group inline-checkbox">
+                <input type="checkbox" id="actIsRepeat">
+                <label for="actIsRepeat">每週固定重複此活動</label>
+            </div>
+
+            <div class="form-group" id="repeatEndGroup" style="display: none;">
+                <label>重複結束日期</label>
+                <input type="date" id="actRepeatUntil" min="2026-07-05" max="2026-09-01" value="2026-09-01">
+            </div>
+
+            <div class="form-group">
+                <label>開始時間 (24小時制)</label>
+                <input type="time" id="actTime">
+            </div>
+
+            <div class="form-group">
+                <label>歷時（分鐘）</label>
+                <input type="number" id="actDuration" value="60" min="5">
+            </div>
+
+            <div class="form-group">
+                <label>地點</label>
+                <input type="text" id="actVenue" placeholder="例如：自修室">
+            </div>
+
+            <!-- 新增 Google 地圖欄位 -->
+            <div class="form-group">
+                <label>Google 地圖連結</label>
+                <input type="url" id="actMapLink" placeholder="請貼上 https://maps.app.goo.gl/... 或網址">
+            </div>
+
+            <div class="form-group">
+                <label>標籤顏色</label>
+                <div class="color-options">
+                    <div class="color-dot cat-green selected" data-color="cat-green"></div>
+                    <div class="color-dot cat-blue" data-color="cat-blue"></div>
+                    <div class="color-dot cat-yellow" data-color="cat-yellow"></div>
+                    <div class="color-dot cat-orange" data-color="cat-orange"></div>
+                    <div class="color-dot cat-red" data-color="cat-red"></div>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" id="cancelBtn">取消</button>
+                <button class="btn btn-delete" id="deleteBtn">刪除</button>
+                <button class="btn btn-save" id="saveBtn">儲存變更</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbzv0Mxi8Qqy7lxYlTfKyhfNtO12FHfKfS6t9YfU-6KCHR87KcdBfRnvr-4DivRrAIxO/exec";
+        const START_LIMIT_DATE = "2026-07-05"; 
+        const END_LIMIT_DATE = "2026-09-01";   
+        
+        const HOUR_BLOCKS = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]; 
+
+        const startLimit = new Date(START_LIMIT_DATE);
+        const endLimit = new Date(END_LIMIT_DATE);
+        
+        // 【修正功能 2】自動根據現時日期判定並跳轉到該週的星期日
+        let currentWeekStart = (function() {
+            const today = new Date();
+            // 清除時分秒，只保留日期部分比對
+            today.setHours(0, 0, 0, 0);
+            
+            // 計算今天所在週的星期日 (today.getDay() 回傳 0 表示星期日，1-6 表示一到六)
+            const sundayOfCurrentWeek = new Date(today);
+            sundayOfCurrentWeek.setDate(today.getDate() - today.getDay());
+            
+            // 安全限制檢查：如果今天尚未到暑期活動起點，預設停留在首週
+            if (sundayOfCurrentWeek < startLimit) {
+                return new Date(startLimit);
+            }
+            // 如果今天已經超過活動終點，預設停留在最後一週
+            if (sundayOfCurrentWeek > endLimit) {
+                // 終點是 9/1 (星期二)，最後一週的起點星期日是 2026-08-30
+                const lastWeekSunday = new Date(endLimit);
+                lastWeekSunday.setDate(endLimit.getDate() - endLimit.getDay());
+                return lastWeekSunday;
+            }
+            return sundayOfCurrentWeek;
+        })();
+        
+        let selectedColor = 'cat-green';
+        let targetSelectedDateContext = null; 
+        let targetSelectedIdContext = null; 
+        let activities = [];
+        
+        let isEditMode = false;
+
+        const timetable = document.getElementById('timetable');
+        const prevWeekBtn = document.getElementById('prevWeekBtn');
+        const nextWeekBtn = document.getElementById('nextWeekBtn');
+        const currentWeekLabel = document.getElementById('currentWeekLabel');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const loadingStatus = document.getElementById('loadingStatus');
+        
+        const viewModeBtn = document.getElementById('viewModeBtn');
+        const editModeBtn = document.getElementById('editModeBtn');
+        
+        const actTitle = document.getElementById('actTitle');
+        const actDate = document.getElementById('actDate');
+        const actIsRepeat = document.getElementById('actIsRepeat');
+        const repeatEndGroup = document.getElementById('repeatEndGroup');
+        const actRepeatUntil = document.getElementById('actRepeatUntil');
+        const actTime = document.getElementById('actTime');
+        const actDuration = document.getElementById('actDuration');
+        const actVenue = document.getElementById('actVenue');
+        const actMapLink = document.getElementById('actMapLink');
+
+        actIsRepeat.addEventListener('change', (e) => {
+            repeatEndGroup.style.display = e.target.checked ? 'flex' : 'none';
+        });
+
+        viewModeBtn.addEventListener('click', () => switchMode(false));
+        editModeBtn.addEventListener('click', () => switchMode(true));
+
+        function switchMode(editMode) {
+            isEditMode = editMode;
+            if (isEditMode) {
+                viewModeBtn.classList.remove('active');
+                editModeBtn.classList.add('active');
+                document.body.classList.add('edit-mode-active');
+            } else {
+                editModeBtn.classList.remove('active');
+                viewModeBtn.classList.add('active');
+                document.body.classList.remove('edit-mode-active');
+            }
+        }
+
+        initGridStructure();
+        fetchCloudData();
+
+        function initGridStructure() {
+            HOUR_BLOCKS.forEach(hour => {
+                const timeCell = document.createElement('div');
+                timeCell.className = 'time-cell';
+                timeCell.textContent = `${hour.toString().padStart(2, '0')}:00`;
+                timetable.appendChild(timeCell);
+
+                const dayOrder = [6, 0, 1, 2, 3, 4, 5];
+                dayOrder.forEach(i => {
+                    const slotCell = document.createElement('div');
+                    slotCell.className = 'slot-cell';
+                    slotCell.dataset.dayIndex = i;
+                    slotCell.dataset.hourBlock = hour;
+                    slotCell.addEventListener('click', (e) => {
+                        if (!isEditMode) return; 
+                        if (e.target.closest('.activity-card')) return;
+                        openAddModal(i, hour);
+                    });
+                    timetable.appendChild(slotCell);
+                });
+            });
+            
+            document.querySelectorAll('.grid-header[data-day]').forEach(header => {
+                header.addEventListener('click', () => {
+                    if (!isEditMode) return; 
+                    if (window.innerWidth <= 768) {
+                        openAddModal(parseInt(header.dataset.day), 9);
+                    }
+                });
+            });
+        }
+
+        function fetchCloudData() {
+            showLoading(true, "🔄 正在連線雲端資料庫...");
+            fetch(CLOUD_API_URL)
+                .then(res => res.json())
+                .then(data => {
+                    activities = data;
+                    renderWeek();
+                    showLoading(false);
+                })
+                .catch(err => {
+                    showLoading(true, "❌ 連線失敗。請確認試算表網頁應用程式部署權限。");
+                    console.error(err);
+                });
+        }
+
+        function saveAndSyncData() {
+            showLoading(true, "💾 正在將變更同步至雲端試算表...");
+            fetch(CLOUD_API_URL, {
+                method: "POST",
+                body: JSON.stringify(activities),
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if(res.status === "success") {
+                    fetchCloudData();
+                }
+            })
+            .catch(err => {
+                alert("資料上傳失敗，請檢查網路連線後重試！");
+                showLoading(false);
+            });
+        }
+
+        function showLoading(show, text = "") {
+            loadingStatus.style.display = show ? "block" : "none";
+            if(text) loadingStatus.textContent = text;
+        }
+
+        function getCurrentWeekDates() {
+            const dates = [];
+            let baseMon = new Date(currentWeekStart);
+            baseMon.setDate(baseMon.getDate() + 1);
+
+            for (let i = 0; i < 7; i++) {
+                let d = new Date(baseMon);
+                d.setDate(d.getDate() + i);
+                if(i === 6) d.setDate(d.getDate() - 7); 
+                dates[i] = d; 
+            }
+            return dates;
+        }
+
+        function renderWeek() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            currentWeekLabel.textContent = `${formatDateStr(currentWeekStart)} 至 ${formatDateStr(weekEnd)}`;
+
+            prevWeekBtn.disabled = currentWeekStart <= startLimit;
+            nextWeekBtn.disabled = weekEnd >= endLimit;
+
+            const datesOfCurrentWeek = getCurrentWeekDates();
+
+            document.querySelectorAll('.grid-header[data-day]').forEach(header => {
+                const idx = parseInt(header.dataset.day);
+                const targetedDate = datesOfCurrentWeek[idx];
+                header.querySelector('.date-lbl').textContent = `(${targetedDate.getMonth()+1}/${targetedDate.getDate()})`;
+            });
+
+            document.querySelectorAll('.slot-cell').forEach(cell => cell.innerHTML = '');
+
+            activities.forEach(act => {
+                datesOfCurrentWeek.forEach((gridDate, dayIdx) => {
+                    if (shouldShowOnDate(act, gridDate)) {
+                        const actHour = parseInt(act.time.split(':')[0]);
+                        const cell = document.querySelector(`.slot-cell[data-day-index="${dayIdx}"][data-hour-block="${actHour}"]`);
+                        
+                        if (cell) {
+                            const card = document.createElement('div');
+                            card.className = `activity-card ${act.color}`;
+                            card.innerHTML = `
+                                <div class="activity-title">${act.title}</div>
+                                <div class="activity-time">⏰ ${act.time} (${act.duration}分)</div>
+                                ${act.venue ? `<div class="activity-venue">📍 ${act.venue}</div>` : ''}
+                                ${act.mapLink ? `<a href="${act.mapLink}" target="_blank" class="activity-map-link">🗺️ 點我導航</a>` : ''}
+                                ${act.isRepeat ? `<span class="activity-repeat-tag">🔄 每週重複</span>` : ''}
+                            `;
+                            
+                            const mapBtn = card.querySelector('.activity-map-link');
+                            if(mapBtn) {
+                                mapBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                });
+                            }
+
+                            card.addEventListener('click', (e) => {
+                                e.stopPropagation(); 
+                                if (!isEditMode) return; 
+                                openEditModal(act.id, gridDate);
+                            });
+                            cell.appendChild(card);
+                        }
+                    }
+                });
+            });
+
+            if (window.innerWidth <= 768) {
+                const container = document.getElementById('timetable');
+                const dayOrder = [6, 0, 1, 2, 3, 4, 5];
+                dayOrder.forEach(dayIdx => {
+                    const header = container.querySelector(`.grid-header[data-day="${dayIdx}"]`);
+                    const cells = Array.from(container.querySelectorAll(`.slot-cell[data-day-index="${dayIdx}"]`));
+                    if(header) container.appendChild(header);
+                    cells.forEach(cell => container.appendChild(cell));
+                });
+            }
+        }
+
+        function shouldShowOnDate(activity, targetDate) {
+            const actDate = new Date(activity.date);
+            const checkDate = new Date(targetDate.toDateString());
+            const originDate = new Date(actDate.toDateString());
+
+            if (activity.exceptions && activity.exceptions.includes(checkDate.toISOString().split('T')[0])) {
+                return false; 
+            }
+
+            if (!activity.isRepeat) {
+                return originDate.getTime() === checkDate.getTime();
+            }
+
+            if (checkDate < originDate) return false;
+            if (activity.repeatUntil && checkDate > new Date(activity.repeatUntil)) return false;
+            
+            return originDate.getDay() === checkDate.getDay();
+        }
+
+        function openAddModal(dayIndex, hour) {
+            targetSelectedIdContext = null;
+            targetSelectedDateContext = null;
+            document.getElementById('deleteBtn').style.display = 'none';
+            document.getElementById('modalHeaderTitle').textContent = "建立新活動";
+
+            const datesOfCurrentWeek = getCurrentWeekDates();
+            const targetDateStr = datesOfCurrentWeek[dayIndex].toISOString().split('T')[0];
+            
+            actTitle.value = '';
+            actDate.value = targetDateStr;
+            actIsRepeat.checked = false;
+            repeatEndGroup.style.display = 'none';
+            actTime.value = `${hour.toString().padStart(2, '0')}:00`;
+            actDuration.value = 60;
+            actVenue.value = '';
+            actMapLink.value = ''; 
+            updateColorSelection('cat-green');
+
+            modalOverlay.classList.add('active');
+        }
+
+        function openEditModal(id, clickedDate) {
+            targetSelectedIdContext = id;
+            targetSelectedDateContext = clickedDate.toISOString().split('T')[0];
+            document.getElementById('deleteBtn').style.display = 'block';
+            document.getElementById('modalHeaderTitle').textContent = "編輯活動詳情";
+
+            const act = activities.find(a => a.id === id);
+            if (!act) return;
+
+            actTitle.value = act.title;
+            actDate.value = targetSelectedDateContext; 
+            actIsRepeat.checked = act.isRepeat || false;
+            repeatEndGroup.style.display = act.isRepeat ? 'flex' : 'none';
+            actRepeatUntil.value = act.repeatUntil || END_LIMIT_DATE;
+            actTime.value = act.time;
+            actDuration.value = act.duration;
+            actVenue.value = act.venue;
+            actMapLink.value = act.mapLink || ''; 
+            updateColorSelection(act.color);
+
+            modalOverlay.classList.add('active');
+        }
+
+        function updateColorSelection(colorClass) {
+            selectedColor = colorClass;
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                dot.classList.toggle('selected', dot.dataset.color === colorClass);
+            });
+        }
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const title = actTitle.value.trim();
+            const dateStr = actDate.value;
+            const isRepeat = actIsRepeat.checked;
+            const repeatUntil = isRepeat ? actRepeatUntil.value : null;
+            const time = actTime.value;
+            const duration = parseInt(actDuration.value);
+            const venue = actVenue.value.trim();
+            const mapLink = actMapLink.value.trim(); 
+
+            if (!title || !dateStr || !time) {
+                alert('請完整填寫活動名稱、日期與時間！');
+                return;
+            }
+
+            if (targetSelectedIdContext) {
+                const originalAct = activities.find(a => a.id === targetSelectedIdContext);
+                
+                if (originalAct.isRepeat) {
+                    const choice = confirm("這是一個【重複發生】的活動：\n\n【確定】：修改往後所有週次的活動\n【取消】：僅修改選定日期的這單次活動");
+                    
+                    if (choice) {
+                        Object.assign(originalAct, { title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, mapLink, color: selectedColor });
+                    } else {
+                        if(!originalAct.exceptions) originalAct.exceptions = [];
+                        originalAct.exceptions.push(targetSelectedDateContext);
+                        activities.push({
+                            id: Date.now().toString(), title, date: targetSelectedDateContext, isRepeat: false, time, duration, venue, mapLink, color: selectedColor
+                        });
+                    }
+                } else {
+                    Object.assign(originalAct, { title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, mapLink, color: selectedColor });
+                }
+            } else {
+                activities.push({
+                    id: Date.now().toString(), title, date: dateStr, isRepeat, repeatUntil, time, duration, venue, mapLink, color: selectedColor, exceptions: []
+                });
+            }
+
+            saveAndSyncData();
+            modalOverlay.classList.remove('active');
+        });
+
+        document.getElementById('deleteBtn').addEventListener('click', () => {
+            const targetAct = activities.find(a => a.id === targetSelectedIdContext);
+            if (!targetAct) return;
+
+            if (targetAct.isRepeat) {
+                const choice = confirm("這是一個【每週重複】的系列活動：\n\n【確定】：刪除這個系列【所有週次】的活動\n【取消】：僅刪除【當天這一次】的活動");
+                if (choice) {
+                    activities = activities.filter(a => a.id !== targetSelectedIdContext);
+                } else {
+                    if (!targetAct.exceptions) targetAct.exceptions = [];
+                    targetAct.exceptions.push(targetSelectedDateContext);
+                }
+            } else {
+                if (confirm('確定要刪除這個活動嗎？')) {
+                    activities = activities.filter(a => a.id !== targetSelectedIdContext);
+                }
+            }
+            
+            saveAndSyncData();
+            modalOverlay.classList.remove('active');
+        });
+
+        prevWeekBtn.addEventListener('click', () => {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            renderWeek();
+        });
+
+        nextWeekBtn.addEventListener('click', () => {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            renderWeek();
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => modalOverlay.classList.remove('active'));
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.addEventListener('click', () => updateColorSelection(dot.dataset.color));
+        });
+
+        function formatDateStr(dateObj) {
+            return `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+        }
+
+        window.addEventListener('resize', renderWeek);
+    </script>
+</body>
+</html>
